@@ -32,18 +32,51 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Parse role from different possible formats
+    Role? userRole;
+    if (json['role'] != null) {
+      if (json['role'] is Map) {
+        // Role is already an object
+        userRole = Role.fromJson(json['role']);
+      } else if (json['role'] is String) {
+        // Role is a string (role name)
+        // Try to get role_id if available
+        int roleId = json['role_id'] ?? 0;
+        String roleName = json['role'];
+        userRole = Role(
+          id: roleId,
+          name: roleName.toLowerCase(),
+          displayName: _getRoleDisplayName(roleName),
+          description: '',
+          permissions: [],
+          isActive: true,
+          isSystemDefault: false,
+          createdAt: '',
+        );
+      }
+    } else if (json['role_id'] != null) {
+      // Only role_id is provided, create a basic role object
+      int roleId = json['role_id'];
+      String roleName = _getRoleNameFromId(roleId);
+      userRole = Role(
+        id: roleId,
+        name: roleName,
+        displayName: _getRoleDisplayName(roleName),
+        description: '',
+        permissions: [],
+        isActive: true,
+        isSystemDefault: false,
+        createdAt: '',
+      );
+    }
+    
     return User(
       id: json['id'],
       email: json['email'],
       username: json['username'],
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
-      role: json['role'] != null ? 
-        (json['role'] is String ? 
-          Role(id: 0, name: json['role'], displayName: json['role'], 
-               description: '', permissions: [], isActive: true, 
-               isSystemDefault: false, createdAt: '') :
-          Role.fromJson(json['role'])) : null,
+      role: userRole,
       avatar: json['avatar'],
       loginMethods: json['login_methods'] != null ?
         (json['login_methods'] as List).map((m) => LoginMethod.fromJson(m)).toList() : null,
@@ -53,6 +86,35 @@ class User {
       loginCount: json['login_count'],
       totalCourseEnrollments: json['total_course_enrollments'],
     );
+  }
+  
+  // Helper method to get display name from role name
+  static String _getRoleDisplayName(String roleName) {
+    switch (roleName.toLowerCase()) {
+      case 'admin':
+        return '管理員';
+      case 'instructor':
+        return '講師';
+      case 'student':
+        return '學生';
+      default:
+        return roleName;
+    }
+  }
+  
+  // Helper method to get role name from ID (basic mapping)
+  static String _getRoleNameFromId(int roleId) {
+    // This is a basic mapping, you might need to adjust based on your actual role IDs
+    switch (roleId) {
+      case 1:
+        return 'student';
+      case 2:
+        return 'instructor';
+      case 3:
+        return 'admin';
+      default:
+        return 'unknown';
+    }
   }
 
   Map<String, dynamic> toJson() {

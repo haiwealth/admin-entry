@@ -85,6 +85,42 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }
   }
 
+  // Helper method to get role for a user
+  Role? _getRoleForUser(User user) {
+    if (user.role != null && user.role!.id > 0) {
+      // Try to find the role by ID in our roles list
+      try {
+        return _roles.firstWhere((r) => r.id == user.role!.id);
+      } catch (e) {
+        // If not found, return the user's role as is
+        return user.role;
+      }
+    }
+    return user.role;
+  }
+  
+  // Helper method to get role display name
+  String _getRoleDisplayName(User user) {
+    final role = _getRoleForUser(user);
+    if (role != null) {
+      return role.displayName;
+    }
+    // Fallback display names
+    if (user.role?.name != null) {
+      switch (user.role!.name.toLowerCase()) {
+        case 'admin':
+          return '管理員';
+        case 'instructor':
+          return '講師';
+        case 'student':
+          return '學生';
+        default:
+          return user.role!.name;
+      }
+    }
+    return '未設定';
+  }
+
   void _showUserDetailDialog(User user) {
     showDialog(
       context: context,
@@ -251,7 +287,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: SelectableText(
-                                      user.role?.displayName ?? user.role?.name ?? '未設定',
+                                      _getRoleDisplayName(user),
                                       style: const TextStyle(color: Colors.white, fontSize: 12),
                                     ),
                                   ),
@@ -510,6 +546,28 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
       }
     }
   }
+  
+  // Helper method to get role display name
+  String _getRoleDisplayName(User user) {
+    if (user.role != null) {
+      // Try to find the role in the provided roles list
+      if (user.role!.id > 0 && widget.roles.isNotEmpty) {
+        try {
+          final role = widget.roles.firstWhere((r) => r.id == user.role!.id);
+          return role.displayName;
+        } catch (e) {
+          // Role not found in list
+        }
+      }
+      // Use the role's display name if available
+      if (user.role!.displayName.isNotEmpty) {
+        return user.role!.displayName;
+      }
+      // Fallback to role name
+      return user.role!.name;
+    }
+    return '未設定';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -558,7 +616,7 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
             const SizedBox(height: 24),
             _buildInfoRow('ID', _user.id.toString()),
             _buildInfoRow('Email', _user.email),
-            _buildInfoRow('角色', _user.role?.displayName ?? '未設定'),
+            _buildInfoRow('角色', _getRoleDisplayName(_user)),
             _buildInfoRow('狀態', _user.isActive ?? true ? '啟用' : '停用'),
             _buildInfoRow('註冊日期', _formatDate(_user.registrationDate)),
             _buildInfoRow('最後登入', _formatDate(_user.lastLoginAt)),
@@ -677,7 +735,26 @@ class _EditUserDialogState extends State<EditUserDialog> {
     _firstNameController = TextEditingController(text: widget.user.firstName);
     _lastNameController = TextEditingController(text: widget.user.lastName);
     _avatarController = TextEditingController(text: widget.user.avatar);
-    _selectedRoleId = widget.user.role?.id;
+    
+    // Try to get the correct role ID
+    if (widget.user.role != null) {
+      if (widget.user.role!.id > 0) {
+        _selectedRoleId = widget.user.role!.id;
+      } else {
+        // Try to find role by name if ID is not valid
+        try {
+          final matchingRole = widget.roles.firstWhere(
+            (r) => r.name.toLowerCase() == widget.user.role!.name.toLowerCase(),
+          );
+          _selectedRoleId = matchingRole.id;
+        } catch (e) {
+          _selectedRoleId = null;
+        }
+      }
+    } else {
+      _selectedRoleId = null;
+    }
+    
     _isActive = widget.user.isActive ?? true;
   }
 
