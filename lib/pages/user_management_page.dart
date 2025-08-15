@@ -239,10 +239,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             final loginMethods = user.loginMethods?.map((m) => m.provider).join(', ') ?? 'email';
                             return DataRow(
                               cells: [
-                                DataCell(Text(user.id.toString())),
-                                DataCell(Text(user.username)),
-                                DataCell(Text(user.email)),
-                                DataCell(Text('${user.firstName} ${user.lastName}')),
+                                DataCell(SelectableText(user.id.toString())),
+                                DataCell(SelectableText(user.username)),
+                                DataCell(SelectableText(user.email)),
+                                DataCell(SelectableText('${user.firstName} ${user.lastName}')),
                                 DataCell(
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -250,21 +250,21 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                       color: _getRoleColor(user.role?.name),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text(
+                                    child: SelectableText(
                                       user.role?.displayName ?? user.role?.name ?? '未設定',
                                       style: const TextStyle(color: Colors.white, fontSize: 12),
                                     ),
                                   ),
                                 ),
-                                DataCell(Text(loginMethods)),
+                                DataCell(SelectableText(loginMethods)),
                                 DataCell(
                                   Icon(
                                     user.isActive ?? true ? Icons.check_circle : Icons.cancel,
                                     color: user.isActive ?? true ? Colors.green : Colors.red,
                                   ),
                                 ),
-                                DataCell(Text(user.loginCount?.toString() ?? '0')),
-                                DataCell(Text(_formatDate(user.lastLoginAt))),
+                                DataCell(SelectableText(user.loginCount?.toString() ?? '0')),
+                                DataCell(SelectableText(_formatDate(user.lastLoginAt))),
                                 DataCell(
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -371,7 +371,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     icon: const Icon(Icons.chevron_right),
                   ),
                   const SizedBox(width: 16),
-                  Text('共 $_totalUsers 位用戶'),
+                  SelectableText('共 $_totalUsers 位用戶'),
                 ],
               ),
             ),
@@ -432,8 +432,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認刪除'),
-        content: Text('確定要刪除用戶 ${user.username} (${user.email}) 嗎？\n此操作無法復原。'),
+        title: const SelectableText('確認刪除'),
+        content: SelectableText('確定要刪除用戶 ${user.username} (${user.email}) 嗎？\n此操作無法復原。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -538,11 +538,11 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      SelectableText(
                         '${_user.firstName} ${_user.lastName}',
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      Text(
+                      SelectableText(
                         _user.username,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
@@ -566,7 +566,7 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
             _buildInfoRow('課程註冊數', _user.totalCourseEnrollments?.toString() ?? '0'),
             if (_user.loginMethods != null && _user.loginMethods!.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text(
+              const SelectableText(
                 '認證方法',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -578,8 +578,8 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
                     _getProviderIcon(method.provider),
                     color: method.isActive ? Colors.green : Colors.grey,
                   ),
-                  title: Text(method.providerName ?? method.provider),
-                  subtitle: Text('建立於: ${_formatDate(method.createdAt)}'),
+                  title: SelectableText(method.providerName ?? method.provider),
+                  subtitle: SelectableText('建立於: ${_formatDate(method.createdAt)}'),
                   trailing: Switch(
                     value: method.isActive,
                     onChanged: null, // 在詳情視圖中不允許修改
@@ -601,13 +601,13 @@ class _UserDetailDialogState extends State<UserDetailDialog> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
+            child: SelectableText(
               '$label:',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
-            child: Text(value),
+            child: SelectableText(value),
           ),
         ],
       ),
@@ -741,7 +741,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              SelectableText(
                 '編輯用戶',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
@@ -949,12 +949,12 @@ class _ResetPasswordDialogState extends State<ResetPasswordDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              SelectableText(
                 '重置密碼',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              Text(
+              SelectableText(
                 '用戶: ${widget.user.username} (${widget.user.email})',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),

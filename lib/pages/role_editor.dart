@@ -100,7 +100,7 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Permissions', style: Theme.of(context).textTheme.titleLarge),
+            SelectableText('Permissions', style: Theme.of(context).textTheme.titleLarge),
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: _showAddPermissionDialog,
@@ -110,7 +110,7 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
         if (_permissions.isEmpty)
           const Padding(
             padding: EdgeInsets.all(8.0),
-            child: Text('No permissions for this role.'),
+            child: SelectableText('No permissions for this role.'),
           )
         else
           ListView.builder(
@@ -122,8 +122,8 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 4.0),
                 child: ListTile(
-                  title: Text('Resource: ${p.resource}'),
-                  subtitle: Text('Action: ${p.action}, Scope: ${p.scope}'),
+                  title: SelectableText('Resource: ${p.resource}'),
+                  subtitle: SelectableText('Action: ${p.action}, Scope: ${p.scope}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () {
@@ -153,8 +153,8 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('刪除角色?'),
-                    content: const Text('你確定要刪除此角色嗎?'),
+                    title: const SelectableText('刪除角色?'),
+                    content: const SelectableText('你確定要刪除此角色嗎?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -174,7 +174,7 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
                     Navigator.pop(context, true); // Return true to indicate success
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to delete role: $e')),
+                      SnackBar(content: SelectableText('Failed to delete role: $e')),
                     );
                   }
                 }
@@ -250,7 +250,7 @@ class _RoleEditorPageState extends State<RoleEditorPage> {
                       Navigator.pop(context, true); // Return true to indicate success
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to save role: $e')),
+                        SnackBar(content: SelectableText('Failed to save role: $e')),
                       );
                     }
                   }

@@ -58,10 +58,10 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(
-              child: Text('Failed to load roles: ${snapshot.error}'),
+              child: SelectableText('Failed to load roles: ${snapshot.error}'),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No roles found.'));
+            return const Center(child: SelectableText('No roles found.'));
           }
 
           final roles = snapshot.data!;
@@ -70,8 +70,8 @@ class _RoleManagementPageState extends State<RoleManagementPage> {
             itemBuilder: (context, index) {
               final role = roles[index];
               return ListTile(
-                title: Text(role.displayName),
-                subtitle: Text(role.name),
+                title: SelectableText(role.displayName),
+                subtitle: SelectableText(role.name),
                 trailing: Icon(
                   role.isActive ? Icons.check_circle : Icons.cancel,
                   color: role.isActive ? Colors.green : Colors.red,

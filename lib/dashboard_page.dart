@@ -70,7 +70,7 @@ class DashboardPage extends StatelessWidget {
           children: <Widget>[
             Icon(icon, size: 48.0),
             const SizedBox(height: 8.0),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            SelectableText(title, style: Theme.of(context).textTheme.titleLarge),
           ],
         ),
       ),

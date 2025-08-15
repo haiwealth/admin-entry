@@ -45,8 +45,8 @@ class _CourseListPageState extends State<CourseListPage> {
               itemBuilder: (context, index) {
                 final course = snapshot.data![index];
                 return ListTile(
-                  title: Text(course.title),
-                  subtitle: Text(course.shortDesc),
+                  title: SelectableText(course.title),
+                  subtitle: SelectableText(course.shortDesc),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -60,7 +60,7 @@ class _CourseListPageState extends State<CourseListPage> {
             );
           } else if (snapshot.hasError) {
             return Center(
-              child: Text('${snapshot.error}'),
+              child: SelectableText('${snapshot.error}'),
             );
           }
           return const Center(

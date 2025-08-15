@@ -59,9 +59,9 @@ class _PermissionManagementPageState extends State<PermissionManagementPage> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(
-                child: Text('Failed to load permissions: ${snapshot.error}'));
+                child: SelectableText('Failed to load permissions: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No roles found.'));
+            return const Center(child: SelectableText('No roles found.'));
           }
 
           final roles = snapshot.data!;
@@ -70,19 +70,19 @@ class _PermissionManagementPageState extends State<PermissionManagementPage> {
             itemBuilder: (context, index) {
               final role = roles[index];
               return ExpansionTile(
-                title: Text(role.displayName),
-                subtitle: Text(role.name),
+                title: SelectableText(role.displayName),
+                subtitle: SelectableText(role.name),
                 leading: IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () => _navigateToEditor(role),
                 ),
                 children: role.permissions.isEmpty
-                    ? [const ListTile(title: Text('No permissions assigned.'))]
+                    ? [const ListTile(title: SelectableText('No permissions assigned.'))]
                     : role.permissions.map((p) {
                         return ListTile(
-                          title: Text('Resource: ${p.resource}'),
+                          title: SelectableText('Resource: ${p.resource}'),
                           subtitle:
-                              Text('Action: ${p.action}, Scope: ${p.scope}'),
+                              SelectableText('Action: ${p.action}, Scope: ${p.scope}'),
                           dense: true,
                         );
                       }).toList(),
