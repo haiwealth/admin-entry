@@ -1,0 +1,1632 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HaiWealth API",
+    "description": "HaiWealth 後端 API - 健康管理系統 API，使用 Go + Gin + GORM 構建",
+    "version": "1.0.0",
+    "contact": {
+      "name": "HaiWealth API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api/v1",
+      "description": "開發環境服務器"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT 身份驗證令牌"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "email": {"type": "string", "example": "user@example.com"},
+          "username": {"type": "string", "example": "username"},
+          "first_name": {"type": "string", "example": "First"},
+          "last_name": {"type": "string", "example": "Last"},
+          "role": {"type": "string", "enum": ["student", "instructor", "admin"], "example": "student"},
+          "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "Course": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "title": {"type": "string", "example": "Course Title"},
+          "description": {"type": "string", "example": "Course description"},
+          "short_desc": {"type": "string", "example": "Brief description"},
+          "price": {"type": "number", "format": "float", "example": 99.99},
+          "level": {"type": "string", "enum": ["beginner", "intermediate", "advanced"], "example": "beginner"},
+          "language": {"type": "string", "example": "chinese"},
+          "category": {"type": "string", "example": "Programming"},
+          "thumbnail": {"type": "string", "example": "https://example.com/thumb.jpg"},
+          "preview_video": {"type": "string", "example": "https://example.com/preview.mp4"},
+          "is_published": {"type": "boolean", "example": true},
+          "discount_price": {"type": "number", "format": "float", "example": 79.99},
+          "discount_percent": {"type": "integer", "minimum": 0, "maximum": 100, "example": 20},
+          "discount_active": {"type": "boolean", "example": true},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "name": {"type": "string", "example": "instructor"},
+          "display_name": {"type": "string", "example": "講師"},
+          "description": {"type": "string", "example": "可以創建和管理課程的用戶"},
+          "permissions": {"type": "string", "example": "{\"permissions\":[{\"resource\":\"course\",\"action\":\"create\",\"scope\":\"own\"}]}"},
+          "is_active": {"type": "boolean", "example": true},
+          "is_system_default": {"type": "boolean", "example": true},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "resource": {"type": "string", "example": "course"},
+          "action": {"type": "string", "example": "create"},
+          "scope": {"type": "string", "example": "own"}
+        }
+      },
+      "PermissionSet": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Permission"}
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {"type": "string", "example": "錯誤描述信息"}
+        }
+      }
+    }
+  },
+  "paths": {
+    "/admin/courses": {
+      "get": {
+        "tags": ["管理員課程"],
+        "summary": "獲取所有課程（管理員視圖）",
+        "description": "管理員可以獲取所有課程，並可選擇篩選已發佈或未發佈的課程",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "published",
+            "in": "query",
+            "description": "篩選已發佈（true）或未發佈（false）的課程",
+            "schema": {"type": "boolean"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取課程列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/Course"}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/courses/{id}/publish": {
+      "put": {
+        "tags": ["管理員課程"],
+        "summary": "管理課程發佈狀態",
+        "description": "管理員可以直接設置課程的發佈狀態",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "課程 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "is_published": {"type": "boolean", "example": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "課程發佈狀態更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/courses/{id}/pricing": {
+      "put": {
+        "tags": ["管理員課程"],
+        "summary": "更新課程定價",
+        "description": "管理員可以直接調整課程定價",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "課程 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "price": {"type": "number", "format": "float", "example": 199.99}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "課程定價更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/courses/{id}/discount": {
+      "put": {
+        "tags": ["管理員課程"],
+        "summary": "管理課程折扣",
+        "description": "管理員可以設置課程折扣，包括折扣金額、百分比和啟用狀態",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "課程 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "discount_price": {"type": "number", "format": "float", "example": 149.99},
+                  "discount_percent": {"type": "integer", "minimum": 0, "maximum": 100, "example": 25},
+                  "discount_active": {"type": "boolean", "example": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "課程折扣更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/courses": {
+      "post": {
+        "tags": ["管理員課程"],
+        "summary": "管理員創建課程",
+        "description": "管理員可以為任何講師創建課程，提供完整的課程設置選項",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "price", "instructor_id"],
+                "properties": {
+                  "title": {"type": "string", "description": "課程標題", "example": "高級開發課程"},
+                  "description": {"type": "string", "description": "詳細課程描述", "example": "深入探索軟體開發技術"},
+                  "short_desc": {"type": "string", "description": "簡短課程描述", "example": "軟體開發進階"},
+                  "price": {"type": "number", "format": "float", "description": "課程價格", "example": 199.99},
+                  "discount_price": {"type": "number", "format": "float", "description": "折扣價格", "example": 149.99},
+                  "discount_percent": {"type": "integer", "minimum": 0, "maximum": 100, "description": "折扣百分比", "example": 25},
+                  "discount_active": {"type": "boolean", "description": "是否啟用折扣", "example": true},
+                  "level": {
+                    "type": "string", 
+                    "enum": ["beginner", "intermediate", "advanced"], 
+                    "description": "課程難度", 
+                    "default": "beginner", 
+                    "example": "advanced"
+                  },
+                  "language": {"type": "string", "description": "課程語言", "default": "chinese", "example": "chinese"},
+                  "category": {"type": "string", "description": "課程類別", "example": "技術"},
+                  "thumbnail": {"type": "string", "description": "縮圖URL", "example": "https://example.com/course-thumb.jpg"},
+                  "preview_video": {"type": "string", "description": "預覽影片URL", "example": "https://example.com/course-preview.mp4"},
+                  "instructor_id": {"type": "integer", "description": "講師ID", "example": 123},
+                  "is_published": {"type": "boolean", "description": "是否立即發布", "example": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "課程創建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          },
+          "400": {
+            "description": "請求無效（如講師不存在）",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["認證"],
+        "summary": "用戶註冊",
+        "description": "創建新用戶賬戶",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "username", "password", "first_name", "last_name"],
+                "properties": {
+                  "email": {"type": "string", "format": "email", "example": "user@example.com"},
+                  "username": {"type": "string", "example": "username"},
+                  "password": {"type": "string", "minLength": 6, "example": "password123"},
+                  "first_name": {"type": "string", "example": "First"},
+                  "last_name": {"type": "string", "example": "Last"},
+                  "role": {"type": "string", "enum": ["student", "instructor", "admin"], "example": "student"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "註冊成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                    "user": {"$ref": "#/components/schemas/User"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求錯誤",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["認證"],
+        "summary": "用戶登入",
+        "description": "使用用戶名或郵箱地址登入系統",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["usernameOrEmail", "password"],
+                "properties": {
+                  "usernameOrEmail": {"type": "string", "description": "用戶名或郵箱地址", "example": "alice_student 或 alice@student.com"},
+                  "password": {"type": "string", "example": "password123"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登入成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                    "user": {"$ref": "#/components/schemas/User"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "認證失敗",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/social": {
+      "post": {
+        "tags": ["認證"],
+        "summary": "社群登入",
+        "description": "使用 Firebase Authentication 進行 Google、Facebook 或 LINE 社群登入，支援真實的 Firebase 驗證",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "name", "provider", "provider_id"],
+                "properties": {
+                  "email": {"type": "string", "format": "email", "example": "user@gmail.com"},
+                  "name": {"type": "string", "example": "Full Name"},
+                  "avatar": {"type": "string", "example": "https://avatar-url.com/image.jpg"},
+                  "provider": {"type": "string", "enum": ["google", "facebook", "line"], "example": "google"},
+                  "provider_id": {"type": "string", "description": "Firebase UID，由 Firebase Authentication 提供", "example": "fIyQakPTmlULiE5WQHJ1NmJqtlm2"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "社群登入成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                    "user": {"$ref": "#/components/schemas/User"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "tags": ["認證"],
+        "summary": "獲取用戶資料",
+        "description": "獲取當前登入用戶的詳細資料",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "成功獲取用戶資料",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/User"}
+              }
+            }
+          },
+          "401": {
+            "description": "未授權",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["認證"],
+        "summary": "更新用戶資料",
+        "description": "更新當前登入用戶的資料",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_name": {"type": "string", "example": "Updated First"},
+                  "last_name": {"type": "string", "example": "Updated Last"},
+                  "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "資料更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/User"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "put": {
+        "tags": ["認證"],
+        "summary": "修改密碼",
+        "description": "修改當前用戶密碼",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["old_password", "new_password", "confirm_new_password"],
+                "properties": {
+                  "old_password": {"type": "string", "example": "current_password"},
+                  "new_password": {"type": "string", "minLength": 6, "example": "new_strong_password"},
+                  "confirm_new_password": {"type": "string", "minLength": 6, "example": "new_strong_password"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "密碼修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "密碼修改成功"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求錯誤（如密碼確認不匹配）",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          },
+          "401": {
+            "description": "未授權或舊密碼錯誤",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": ["課程"],
+        "summary": "獲取課程列表",
+        "description": "獲取所有公開課程，支援搜尋和篩選",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "搜尋課程標題和描述",
+            "schema": {"type": "string", "example": "javascript"}
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "按類別篩選",
+            "schema": {"type": "string", "example": "Programming"}
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "按難度篩選",
+            "schema": {"type": "string", "enum": ["beginner", "intermediate", "advanced"], "example": "beginner"}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "頁碼",
+            "schema": {"type": "integer", "default": 1, "example": 1}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每頁項目數",
+            "schema": {"type": "integer", "default": 10, "example": 10}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取課程列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/Course"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["課程"],
+        "summary": "創建新課程",
+        "description": "僅講師可創建新課程",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "price", "level", "category"],
+                "properties": {
+                  "title": {"type": "string", "example": "我的優秀課程"},
+                  "description": {"type": "string", "example": "詳細的課程描述"},
+                  "short_desc": {"type": "string", "example": "簡短描述"},
+                  "price": {"type": "number", "format": "float", "example": 99.99},
+                  "level": {"type": "string", "enum": ["beginner", "intermediate", "advanced"], "example": "beginner"},
+                  "language": {"type": "string", "example": "chinese"},
+                  "category": {"type": "string", "example": "Programming"},
+                  "thumbnail": {"type": "string", "example": "https://example.com/thumb.jpg"},
+                  "preview_video": {"type": "string", "example": "https://example.com/preview.mp4"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "課程創建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses/{id}": {
+      "get": {
+        "tags": ["課程"],
+        "summary": "獲取課程詳情",
+        "description": "獲取特定課程的詳細資訊，包括章節、講座和評價",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "課程 ID",
+            "schema": {"type": "integer", "example": 1}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取課程詳情",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Course"}
+              }
+            }
+          },
+          "404": {
+            "description": "課程未找到",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/roles": {
+      "get": {
+        "tags": ["角色管理"],
+        "summary": "獲取所有角色",
+        "description": "獲取系統中所有角色的列表，包括角色詳情和權限配置",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "成功獲取角色列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/Role"}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["角色管理"],
+        "summary": "創建新角色",
+        "description": "創建新的自定義角色，具有指定的權限配置",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "display_name"],
+                "properties": {
+                  "name": {"type": "string", "example": "moderator", "description": "角色唯一標識符（英文）"},
+                  "display_name": {"type": "string", "example": "內容審核員", "description": "角色顯示名稱"},
+                  "description": {"type": "string", "example": "負責審核和管理用戶內容", "description": "角色描述"},
+                  "permissions": {"type": "string", "example": "{\"permissions\":[{\"resource\":\"course\",\"action\":\"read\",\"scope\":\"all\"}]}", "description": "JSON格式的權限配置"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "角色創建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Role"}
+              }
+            }
+          },
+          "400": {
+            "description": "請求錯誤（如角色名稱重複）",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/roles/{id}": {
+      "get": {
+        "tags": ["角色管理"],
+        "summary": "獲取角色詳情",
+        "description": "獲取特定角色的詳細信息，包括完整的權限配置",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取角色詳情",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Role"}
+              }
+            }
+          },
+          "404": {
+            "description": "角色未找到",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["角色管理"],
+        "summary": "更新角色",
+        "description": "更新角色資訊，注意系統預設角色的某些操作受限",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "display_name": {"type": "string", "example": "高級內容審核員"},
+                  "description": {"type": "string", "example": "具有更高權限的內容審核員"},
+                  "permissions": {"type": "string", "example": "{\"permissions\":[{\"resource\":\"course\",\"action\":\"*\",\"scope\":\"all\"}]}"},
+                  "is_active": {"type": "boolean", "example": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "角色更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Role"}
+              }
+            }
+          },
+          "400": {
+            "description": "無法更新系統預設角色",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["角色管理"],
+        "summary": "刪除角色",
+        "description": "軟刪除角色，不能刪除系統預設角色或仍有用戶使用的角色",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "角色 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "角色刪除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "角色刪除成功"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無法刪除（系統角色或仍有用戶使用）",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions": {
+      "get": {
+        "tags": ["權限管理"],
+        "summary": "獲取所有權限",
+        "description": "獲取所有角色的權限配置總覽，用於權限管理儀表板",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "成功獲取權限配置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {"$ref": "#/components/schemas/PermissionSet"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/{role_name}": {
+      "get": {
+        "tags": ["權限管理"],
+        "summary": "獲取角色權限",
+        "description": "獲取特定角色的詳細權限配置",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "role_name",
+            "in": "path",
+            "required": true,
+            "description": "角色名稱",
+            "schema": {"type": "string", "example": "instructor"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取角色權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PermissionSet"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["權限管理"],
+        "summary": "更新角色權限",
+        "description": "更新角色的權限配置，注意不能修改系統預設角色的權限",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "role_name",
+            "in": "path",
+            "required": true,
+            "description": "角色名稱",
+            "schema": {"type": "string", "example": "instructor"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "permissions": {"$ref": "#/components/schemas/PermissionSet"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "權限更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "權限更新成功"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無法修改系統預設角色權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/check": {
+      "post": {
+        "tags": ["權限管理"],
+        "summary": "檢查權限",
+        "description": "檢查特定角色是否具有特定權限，用於權限測試和除錯",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role", "resource", "action", "scope"],
+                "properties": {
+                  "role": {"type": "string", "example": "instructor"},
+                  "resource": {"type": "string", "example": "course"},
+                  "action": {"type": "string", "example": "create"},
+                  "scope": {"type": "string", "example": "own"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "權限檢查結果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "has_permission": {"type": "boolean", "example": true}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/refresh": {
+      "post": {
+        "tags": ["權限管理"],
+        "summary": "刷新權限",
+        "description": "刷新權限緩存，重新從資料庫載入最新的權限配置",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "權限刷新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "權限刷新成功"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/permissions/templates": {
+      "get": {
+        "tags": ["權限管理"],
+        "summary": "獲取權限模板",
+        "description": "獲取預設的權限模板，包括只讀、內容創作者、審核員等模板",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "成功獲取權限模板",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "read_only": {"$ref": "#/components/schemas/PermissionSet"},
+                    "content_creator": {"$ref": "#/components/schemas/PermissionSet"},
+                    "moderator": {"$ref": "#/components/schemas/PermissionSet"},
+                    "super_admin": {"$ref": "#/components/schemas/PermissionSet"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/firebase-validate": {
+      "get": {
+        "tags": ["Firebase"],
+        "summary": "檢查 Firebase 配置狀態",
+        "description": "檢驗當前 Firebase Authentication 的配置和可用性",
+        "responses": {
+          "200": {
+            "description": "Firebase 配置正常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "is_configured": {"type": "boolean", "example": true},
+                    "providers": {
+                      "type": "array",
+                      "items": {"type": "string", "enum": ["google", "facebook", "line"]},
+                      "example": ["google", "facebook"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Firebase 配置錯誤",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/firebase-config": {
+      "get": {
+        "tags": ["Firebase"],
+        "summary": "獲取 Firebase 公開配置",
+        "description": "獲取適用於前端的 Firebase 公開配置資訊",
+        "responses": {
+          "200": {
+            "description": "成功獲取 Firebase 配置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "api_key": {"type": "string", "description": "Firebase 公開 API Key"},
+                    "auth_domain": {"type": "string"},
+                    "project_id": {"type": "string"},
+                    "enabled_providers": {
+                      "type": "array",
+                      "items": {"type": "string", "enum": ["google", "facebook", "line"]},
+                      "example": ["google", "facebook"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Firebase 配置獲取失敗",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": ["管理員用戶管理"],
+        "summary": "列出所有用戶",
+        "description": "管理員可以獲取所有用戶，並可選擇篩選",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "頁碼",
+            "schema": {"type": "integer", "default": 1}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "每頁項目數",
+            "schema": {"type": "integer", "default": 10}
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "搜尋用戶（按名稱、email）",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "role_id",
+            "in": "query",
+            "description": "依角色篩選",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "description": "依登入方式篩選",
+            "schema": {
+              "type": "string",
+              "enum": ["google", "facebook", "line", "email"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取用戶列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {"type": "integer"},
+                    "page": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer", "example": 1},
+                          "email": {"type": "string", "example": "user@example.com"},
+                          "username": {"type": "string", "example": "john_doe"},
+                          "first_name": {"type": "string", "example": "John"},
+                          "last_name": {"type": "string", "example": "Doe"},
+                          "role": {"$ref": "#/components/schemas/Role"},
+                          "login_methods": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "provider": {"type": "string", "enum": ["google", "facebook", "line", "email"], "example": "google"},
+                                "provider_name": {"type": "string", "example": "Google"},
+                                "is_active": {"type": "boolean", "example": true},
+                                "created_at": {"type": "string", "format": "date-time"},
+                                "last_used_at": {"type": "string", "format": "date-time"}
+                              }
+                            }
+                          },
+                          "is_active": {"type": "boolean", "example": true},
+                          "last_login_at": {"type": "string", "format": "date-time"},
+                          "registration_date": {"type": "string", "format": "date-time"},
+                          "login_count": {"type": "integer", "example": 24},
+                          "total_course_enrollments": {"type": "integer", "example": 5}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}": {
+      "get": {
+        "tags": ["管理員用戶管理"],
+        "summary": "獲取用戶詳細資訊",
+        "description": "管理員可以獲取特定用戶的詳細資訊",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用戶 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功獲取用戶詳細資訊",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "integer", "example": 1},
+                    "email": {"type": "string", "example": "user@example.com", "format": "email"},
+                    "username": {"type": "string", "example": "john_doe"},
+                    "first_name": {"type": "string", "example": "John"},
+                    "last_name": {"type": "string", "example": "Doe"},
+                    "avatar": {"type": "string", "example": "https://example.com/avatar.jpg"},
+                    "role": {"$ref": "#/components/schemas/Role"},
+                    "auth_methods": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer", "example": 1},
+                          "provider": {"type": "string", "enum": ["google", "facebook", "line", "email"], "example": "google"},
+                          "provider_name": {"type": "string", "example": "Google"},
+                          "provider_id": {"type": "string", "example": "google_uid"},
+                          "is_active": {"type": "boolean", "example": true},
+                          "created_at": {"type": "string", "format": "date-time"},
+                          "last_used_at": {"type": "string", "format": "date-time"}
+                        }
+                      }
+                    },
+                    "is_active": {"type": "boolean", "example": true},
+                    "last_login_at": {"type": "string", "format": "date-time"},
+                    "registration_date": {"type": "string", "format": "date-time"},
+                    "login_count": {"type": "integer", "example": 24},
+                    "total_course_enrollments": {"type": "integer", "example": 5}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          },
+          "404": {
+            "description": "用戶未找到",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["管理員用戶管理"],
+        "summary": "更新用戶資訊",
+        "description": "管理員可以更新用戶的基本資訊",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用戶 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "username": {"type": "string"},
+                  "first_name": {"type": "string"},
+                  "last_name": {"type": "string"},
+                  "avatar": {"type": "string"},
+                  "role_id": {"type": "integer"},
+                  "is_active": {"type": "boolean"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "用戶資訊更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {"$ref": "#/components/schemas/User"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求錯誤（如 email 重複）",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["管理員用戶管理"],
+        "summary": "刪除用戶",
+        "description": "管理員可以完全刪除用戶及其認證方法",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用戶 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用戶刪除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "用戶已成功刪除"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/reset-password": {
+      "post": {
+        "tags": ["管理員用戶管理"],
+        "summary": "重置用戶密碼",
+        "description": "管理員可以重置用戶密碼",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用戶 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": {"type": "string", "minLength": 6},
+                  "send_email": {"type": "boolean", "default": true},
+                  "require_change": {"type": "boolean", "default": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "密碼重置成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "密碼已成功重置"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/auth-methods/{method_id}": {
+      "put": {
+        "tags": ["管理員用戶管理"],
+        "summary": "切換用戶認證方法狀態",
+        "description": "管理員可以啟用或停用用戶的特定認證方法",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "用戶 ID",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "method_id",
+            "in": "path",
+            "required": true,
+            "description": "認證方法 ID",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["is_active"],
+                "properties": {
+                  "is_active": {"type": "boolean"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "認證方法狀態更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string", "example": "認證方法狀態已更新"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無法停用最後一種認證方法",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          },
+          "403": {
+            "description": "無管理員權限",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/firebase-debug": {
+      "get": {
+        "tags": ["Firebase"],
+        "summary": "Firebase 除錯頁面",
+        "description": "提供 Firebase Authentication 整合狀態的除錯資訊，僅供開發環境使用",
+        "responses": {
+          "200": {
+            "description": "成功返回除錯 HTML 頁面",
+            "content": {
+              "text/html": {
+                "schema": {"type": "string", "description": "HTML 除錯頁面"}
+              }
+            }
+          },
+          "403": {
+            "description": "生產環境拒絕存取",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "管理員用戶管理",
+      "description": "管理員用戶管理相關操作（僅管理員）"
+    },
+    {
+      "name": "Firebase",
+      "description": "Firebase Authentication 相關操作"
+    },
+    {
+      "name": "認證",
+      "description": "用戶認證相關操作"
+    },
+    {
+      "name": "課程",
+      "description": "課程管理相關操作"
+    },
+    {
+      "name": "管理員課程",
+      "description": "管理員課程管理相關操作"
+    },
+    {
+      "name": "角色管理",
+      "description": "角色管理相關操作（僅管理員）"
+    },
+    {
+      "name": "權限管理",
+      "description": "IAM 權限管理相關操作（僅管理員）"
+    }
+  ]
+}
