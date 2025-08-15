@@ -189,23 +189,47 @@ class Role {
   factory Role.fromJson(Map<String, dynamic> json) {
     var permissionsList = <Permission>[];
     if (json['permissions'] != null) {
-      var decodedPermissions = jsonDecode(json['permissions']);
-      if (decodedPermissions['permissions'] != null) {
-        permissionsList = (decodedPermissions['permissions'] as List)
+      // Check if permissions is already a decoded object or a string
+      if (json['permissions'] is String) {
+        try {
+          var decodedPermissions = jsonDecode(json['permissions']);
+          if (decodedPermissions is Map && decodedPermissions['permissions'] != null) {
+            permissionsList = (decodedPermissions['permissions'] as List)
+                .map((p) => Permission.fromJson(p))
+                .toList();
+          } else if (decodedPermissions is List) {
+            permissionsList = decodedPermissions
+                .map((p) => Permission.fromJson(p))
+                .toList();
+          }
+        } catch (e) {
+          // If JSON decode fails, keep empty permissions list
+          print('Failed to parse permissions: $e');
+        }
+      } else if (json['permissions'] is Map) {
+        // If permissions is already a Map
+        if (json['permissions']['permissions'] != null) {
+          permissionsList = (json['permissions']['permissions'] as List)
+              .map((p) => Permission.fromJson(p))
+              .toList();
+        }
+      } else if (json['permissions'] is List) {
+        // If permissions is directly a List
+        permissionsList = (json['permissions'] as List)
             .map((p) => Permission.fromJson(p))
             .toList();
       }
     }
 
     return Role(
-      id: json['id'],
-      name: json['name'],
-      displayName: json['display_name'],
-      description: json['description'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      displayName: json['display_name'] ?? '',
+      description: json['description'] ?? '',
       permissions: permissionsList,
-      isActive: json['is_active'],
-      isSystemDefault: json['is_system_default'],
-      createdAt: json['created_at'],
+      isActive: json['is_active'] ?? true,
+      isSystemDefault: json['is_system_default'] ?? false,
+      createdAt: json['created_at'] ?? '',
     );
   }
 
