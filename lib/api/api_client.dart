@@ -59,12 +59,41 @@ class ApiClient {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final users = (data['users'] as List).map((json) => User.fromJson(json)).toList();
+      
+      // Handle different response formats
+      List<User> users;
+      int total;
+      int currentPage;
+      int currentLimit;
+      
+      if (data is List) {
+        // Direct array response
+        users = data.map((json) => User.fromJson(json)).toList();
+        total = users.length;
+        currentPage = page;
+        currentLimit = limit;
+      } else if (data is Map) {
+        // Object response with users array
+        if (data.containsKey('users')) {
+          users = (data['users'] as List).map((json) => User.fromJson(json)).toList();
+        } else if (data.containsKey('data')) {
+          users = (data['data'] as List).map((json) => User.fromJson(json)).toList();
+        } else {
+          // Fallback: treat the entire response as a list
+          users = data.values.where((v) => v is Map).map((json) => User.fromJson(json)).toList();
+        }
+        total = data['total'] ?? users.length;
+        currentPage = data['page'] ?? page;
+        currentLimit = data['limit'] ?? limit;
+      } else {
+        throw Exception('Unexpected response format for users');
+      }
+      
       return {
         'users': users,
-        'total': data['total'],
-        'page': data['page'],
-        'limit': data['limit'],
+        'total': total,
+        'page': currentPage,
+        'limit': currentLimit,
       };
     } else {
       throw Exception('Failed to load users');
@@ -258,8 +287,29 @@ class ApiClient {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => Role.fromJson(json)).toList();
+      final dynamic responseData = jsonDecode(response.body);
+      
+      // Handle different response formats
+      List<dynamic> rolesData;
+      if (responseData is List) {
+        // Direct array response
+        rolesData = responseData;
+      } else if (responseData is Map) {
+        // Object response with roles array
+        if (responseData.containsKey('roles')) {
+          rolesData = responseData['roles'] as List;
+        } else if (responseData.containsKey('data')) {
+          rolesData = responseData['data'] as List;
+        } else {
+          // If the map doesn't contain expected keys, convert to list
+          // This handles cases where the API might return a map of roles keyed by ID
+          rolesData = responseData.values.toList();
+        }
+      } else {
+        throw Exception('Unexpected response format for roles');
+      }
+      
+      return rolesData.map((json) => Role.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load roles');
     }
